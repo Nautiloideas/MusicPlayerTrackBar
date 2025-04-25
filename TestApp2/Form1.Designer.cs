@@ -32,8 +32,6 @@
             lblDuration = new Label();
             numDuration = new NumericUpDown();
             chkCompatibilityMode = new CheckBox();
-            label4 = new Label();
-            cboTimeFormat = new ComboBox();
             label3 = new Label();
             cboTimeTextPosition = new ComboBox();
             label2 = new Label();
@@ -60,8 +58,6 @@
             panel1.Controls.Add(lblDuration);
             panel1.Controls.Add(numDuration);
             panel1.Controls.Add(chkCompatibilityMode);
-            panel1.Controls.Add(label4);
-            panel1.Controls.Add(cboTimeFormat);
             panel1.Controls.Add(label3);
             panel1.Controls.Add(cboTimeTextPosition);
             panel1.Controls.Add(label2);
@@ -110,28 +106,6 @@
             chkCompatibilityMode.Text = "兼容模式";
             chkCompatibilityMode.UseVisualStyleBackColor = true;
             chkCompatibilityMode.CheckedChanged += chkCompatibilityMode_CheckedChanged;
-            // 
-            // label4
-            // 
-            label4.AutoSize = true;
-            label4.Location = new Point(692, 62);
-            label4.Margin = new Padding(4, 0, 4, 0);
-            label4.Name = "label4";
-            label4.Size = new Size(68, 17);
-            label4.TabIndex = 11;
-            label4.Text = "时间格式：";
-            // 
-            // cboTimeFormat
-            // 
-            cboTimeFormat.DropDownStyle = ComboBoxStyle.DropDownList;
-            cboTimeFormat.FormattingEnabled = true;
-            cboTimeFormat.Items.AddRange(new object[] { "标准 (00:00)", "完整 (00:00:00)", "含毫秒 (00:00.000)" });
-            cboTimeFormat.Location = new Point(775, 58);
-            cboTimeFormat.Margin = new Padding(4, 4, 4, 4);
-            cboTimeFormat.Name = "cboTimeFormat";
-            cboTimeFormat.Size = new Size(182, 25);
-            cboTimeFormat.TabIndex = 10;
-            cboTimeFormat.SelectedIndexChanged += cboTimeFormat_SelectedIndexChanged;
             // 
             // label3
             // 
@@ -348,8 +322,6 @@
         private System.Windows.Forms.ComboBox cboThumbStyle;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.ComboBox cboTimeTextPosition;
-        private System.Windows.Forms.Label label4;
-        private System.Windows.Forms.ComboBox cboTimeFormat;
         private System.Windows.Forms.CheckBox chkCompatibilityMode;
         private System.Windows.Forms.NumericUpDown numDuration;
         private System.Windows.Forms.Label lblDuration;

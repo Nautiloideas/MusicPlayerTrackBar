@@ -27,7 +27,6 @@ namespace TestApp2
             cboStyle.SelectedIndex = musicPlayerTrackBar1.TrackBarStyle == TrackBarStyle.Flat ? 0 : 1;
             cboThumbStyle.SelectedIndex = (int)musicPlayerTrackBar1.ThumbStyle;
             cboTimeTextPosition.SelectedIndex = (int)musicPlayerTrackBar1.TimeTextPosition;
-            cboTimeFormat.SelectedIndex = (int)musicPlayerTrackBar1.TimeFormat;
             
             // 更新持续时间控件的值
             numDuration.Value = musicPlayerTrackBar1.Duration / 1000; // 转换为秒
@@ -51,36 +50,14 @@ namespace TestApp2
             TimeSpan time = TimeSpan.FromMilliseconds(milliseconds);
             int totalMinutes = (int)time.TotalMinutes;
             
-            if (musicPlayerTrackBar1.TimeFormat == TimeFormat.Standard)
+            // 对于超过59分钟的时间，显示总分钟数而不是重置
+            if (totalMinutes >= 60)
             {
-                // 对于超过59分钟的时间，显示总分钟数而不是重置
-                if (time.Hours > 0 || totalMinutes >= 60)
-                {
-                    return $"{totalMinutes}:{time.Seconds:00}";
-                }
-                return $"{time.Minutes:00}:{time.Seconds:00}";
+                return $"{totalMinutes}:{time.Seconds:00}";
             }
-            else if (musicPlayerTrackBar1.TimeFormat == TimeFormat.Complete)
-            {
-                // 如果小时数大于0，显示小时
-                if (time.Hours > 0) 
-                    return $"{(int)time.TotalHours:00}:{time.Minutes:00}:{time.Seconds:00}";
-                    
-                // 如果分钟数大于等于60，显示总分钟数
-                if (totalMinutes >= 60)
-                {
-                    return $"{totalMinutes}:{time.Seconds:00}";
-                }
-                return $"{time.Minutes:00}:{time.Seconds:00}";
-            }
-            else // TimeFormat.WithMilliseconds
-            {
-                if (time.Hours > 0 || totalMinutes >= 60)
-                {
-                    return $"{totalMinutes}:{time.Seconds:00}.{time.Milliseconds:000}";
-                }
-                return $"{time.Minutes:00}:{time.Seconds:00}.{time.Milliseconds:000}";
-            }
+            
+            // 默认使用00:00格式
+            return $"{time.Minutes:00}:{time.Seconds:00}";
         }
 
         private void Timer_Tick(object sender, EventArgs e)
@@ -152,12 +129,6 @@ namespace TestApp2
             musicPlayerTrackBar1.TimeTextPosition = (TimeTextPosition)cboTimeTextPosition.SelectedIndex;
         }
 
-        private void cboTimeFormat_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            musicPlayerTrackBar1.TimeFormat = (TimeFormat)cboTimeFormat.SelectedIndex;
-            UpdateTimeDisplay();
-        }
-
         private void chkCompatibilityMode_CheckedChanged(object sender, EventArgs e)
         {
             musicPlayerTrackBar1.CompatibilityMode = chkCompatibilityMode.Checked;
@@ -172,12 +143,12 @@ namespace TestApp2
             if (totalMinutes >= 60)
             {
                 // 如果总分钟数大于等于60，使用总分钟格式
-                markerTimeText = $"{totalMinutes}\\:{markerTime.Seconds:00}";
+                markerTimeText = $"{totalMinutes}:{markerTime.Seconds:00}";
             }
             else
             {
                 // 否则使用标准格式
-                markerTimeText = markerTime.ToString("mm\\:ss");
+                markerTimeText = $"{markerTime.Minutes:00}:{markerTime.Seconds:00}";
             }
             
             musicPlayerTrackBar1.AddChapterMarker(musicPlayerTrackBar1.CurrentTime, $"标记 {markerTimeText}", Color.OrangeRed);

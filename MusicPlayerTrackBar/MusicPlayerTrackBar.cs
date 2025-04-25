@@ -72,27 +72,6 @@ namespace MusicPlayerTrackBar
     }
     
     /// <summary>
-    /// 时间格式
-    /// </summary>
-    public enum TimeFormat
-    {
-        /// <summary>
-        /// 标准格式 (mm:ss)
-        /// </summary>
-        Standard,
-        
-        /// <summary>
-        /// 完整格式 (hh:mm:ss)
-        /// </summary>
-        Complete,
-        
-        /// <summary>
-        /// 带毫秒 (mm:ss.ms)
-        /// </summary>
-        WithMilliseconds
-    }
-    
-    /// <summary>
     /// 时间文本位置
     /// </summary>
     public enum TimeTextPosition
@@ -199,7 +178,6 @@ namespace MusicPlayerTrackBar
         private int _markerSize = 8;
         
         private TimeDisplayType _timeDisplay = TimeDisplayType.OnHover; // 时间显示方式
-        private TimeFormat _timeFormat = TimeFormat.Standard; // 时间格式
         private TimeTextPosition _timeTextPosition = TimeTextPosition.Classic; // 时间文本位置
         
         private Font _timeFont = new Font("Arial", 8);       // 时间显示字体
@@ -555,25 +533,6 @@ namespace MusicPlayerTrackBar
         }
         
         /// <summary>
-        /// 获取或设置时间格式
-        /// </summary>
-        [Category("外观")]
-        [Description("获取或设置时间格式")]
-        [DefaultValue(typeof(TimeFormat), "Standard")]
-        public TimeFormat TimeFormat
-        {
-            get => _timeFormat;
-            set
-            {
-                if (_timeFormat != value)
-                {
-                    _timeFormat = value;
-                    Invalidate();
-                }
-            }
-        }
-        
-        /// <summary>
         /// 获取或设置时间文本位置
         /// </summary>
         [Category("外观")]
@@ -879,38 +838,14 @@ namespace MusicPlayerTrackBar
             TimeSpan time = TimeSpan.FromMilliseconds(milliseconds);
             int totalMinutes = (int)time.TotalMinutes;
             
-            switch (_timeFormat)
+            // 对于超过59分钟的时间，显示总分钟数
+            if (totalMinutes >= 60)
             {
-                case TimeFormat.Standard:
-                    if (time.Hours > 0 || totalMinutes >= 60)
-                    {
-                        // 不区分小时，直接显示总分钟数
-                        return $"{totalMinutes}:{time.Seconds:00}";
-                    }
-                    return time.ToString(@"mm\:ss");
-                    
-                case TimeFormat.Complete:
-                    // 如果小时数大于0，显示小时
-                    if (time.Hours > 0) 
-                        return time.ToString(@"hh\:mm\:ss");
-                    
-                    // 如果分钟数大于等于60，显示总分钟数
-                    if (totalMinutes >= 60)
-                    {
-                        return $"{totalMinutes}:{time.Seconds:00}";
-                    }
-                    return time.ToString(@"mm\:ss");
-                    
-                case TimeFormat.WithMilliseconds:
-                    if (time.Hours > 0 || totalMinutes >= 60)
-                    {
-                        return $"{totalMinutes}:{time.Seconds:00}.{time.Milliseconds:000}";
-                    }
-                    return time.ToString(@"mm\:ss\.fff");
-                    
-                default:
-                    return time.ToString(@"mm\:ss");
+                return $"{totalMinutes}:{time.Seconds:00}";
             }
+            
+            // 默认使用00:00格式
+            return $"{time.Minutes:00}:{time.Seconds:00}";
         }
         
         #endregion
