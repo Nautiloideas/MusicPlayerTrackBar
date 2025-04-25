@@ -8,7 +8,7 @@ MusicPlayerTrackBar 是一个专为音乐播放器设计的现代化轨道条控
 
 -   **多种轨道样式**：平面风格、圆角风格
 -   **多种滑块样式**：矩形、圆形、三角形
--   **时间显示**：多种显示格式和位置选项
+-   **时间显示**：支持"00:00"格式，可配置显示位置
 -   **缓冲进度显示**：直观展示音频缓冲状态
 -   **章节标记**：支持添加和显示音频章节标记
 -   **拖拽功能**：支持流畅的拖拽体验，包括滑块放大动画
@@ -42,17 +42,16 @@ MusicPlayerTrackBar 是一个专为音乐播放器设计的现代化轨道条控
 
 ### 行为设置
 
-| 属性               | 类型             | 默认值   | 说明                                             |
-| ------------------ | ---------------- | -------- | ------------------------------------------------ |
-| `TimeDisplay`      | TimeDisplayType  | OnHover  | 时间显示方式（None、OnHover、Always）            |
-| `TimeFormat`       | TimeFormat       | Standard | 时间格式（Standard、Complete、WithMilliseconds） |
-| `TimeTextPosition` | TimeTextPosition | Classic  | 时间文本位置（None、EndOfTrack、Classic）        |
-| `ShowBuffered`     | bool             | true     | 是否显示缓冲进度                                 |
-| `ShowHoverTime`    | bool             | true     | 是否显示悬停时间                                 |
-| `ShowMarkers`      | bool             | false    | 是否显示章节标记                                 |
-| `EnablePreview`    | bool             | false    | 是否启用预览功能                                 |
-| `EnableAnimation`  | bool             | true     | 是否启用动画效果                                 |
-| `MarkerStyle`      | MarkerStyle      | Line     | 标记样式（Line、Triangle、Circle）               |
+| 属性               | 类型             | 默认值  | 说明                                      |
+| ------------------ | ---------------- | ------- | ----------------------------------------- |
+| `TimeDisplay`      | TimeDisplayType  | OnHover | 时间显示方式（None、OnHover、Always）     |
+| `TimeTextPosition` | TimeTextPosition | Classic | 时间文本位置（None、EndOfTrack、Classic） |
+| `ShowBuffered`     | bool             | true    | 是否显示缓冲进度                          |
+| `ShowHoverTime`    | bool             | true    | 是否显示悬停时间                          |
+| `ShowMarkers`      | bool             | false   | 是否显示章节标记                          |
+| `EnablePreview`    | bool             | false   | 是否启用预览功能                          |
+| `EnableAnimation`  | bool             | true    | 是否启用动画效果                          |
+| `MarkerStyle`      | MarkerStyle      | Line    | 标记样式（Line、Triangle、Circle）        |
 
 ### 兼容设置
 
@@ -105,7 +104,6 @@ MusicPlayerTrackBar trackBar = new MusicPlayerTrackBar
 
     // 设置行为
     TimeDisplay = TimeDisplayType.Always,
-    TimeFormat = TimeFormat.Standard,
     TimeTextPosition = TimeTextPosition.Classic,
     EnableAnimation = true
 };
