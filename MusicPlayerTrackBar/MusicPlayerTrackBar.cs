@@ -1695,18 +1695,34 @@ namespace MusicPlayerTrackBar
                 string timeText = FormatTime(hoverTimeMs);
                 SizeF textSize = g.MeasureString(timeText, _timeFont);
                 
-                // 计算气泡大小和位置
+                // 计算气泡大小
                 int bubbleWidth = (int)textSize.Width + 10;
                 int bubbleHeight = (int)textSize.Height + 6;
-                int bubbleX = mouseX - bubbleWidth / 2;
-                int bubbleY = 5; // 改为正值，确保显示在控件内部的顶部
+                int bubbleY = 5; // 气泡Y坐标固定在顶部
+                
+                // 根据鼠标在进度条中的位置决定气泡显示在左侧还是右侧
+                int bubbleX;
+                
+                // 判断鼠标是否在进度条前半段
+                bool isInFirstHalf = trackX < trackRect.X + trackRect.Width / 2;
+                
+                if (isInFirstHalf)
+                {
+                    // 在前半段，气泡显示在鼠标右侧
+                    bubbleX = mouseX + 5; // 鼠标右侧偏移5像素
+                }
+                else
+                {
+                    // 在后半段，气泡显示在鼠标左侧
+                    bubbleX = mouseX - bubbleWidth - 5; // 鼠标左侧偏移5像素
+                }
                 
                 // 确保气泡不超出控件边界
                 bubbleX = Math.Max(0, Math.Min(bubbleX, Width - bubbleWidth));
                 
                 // 绘制气泡背景
                 Rectangle bubbleRect = new Rectangle(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
-                using (Brush bubbleBrush = new SolidBrush(Color.FromArgb(220, Color.Black))) // 增加不透明度
+                using (Brush bubbleBrush = new SolidBrush(Color.FromArgb(220, Color.Black)))
                 {
                     g.FillRoundedRectangle(bubbleBrush, bubbleRect, 4);
                 }
