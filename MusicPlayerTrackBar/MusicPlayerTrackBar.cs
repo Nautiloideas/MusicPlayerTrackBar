@@ -92,6 +92,27 @@ namespace MusicPlayerTrackBar
         WithMilliseconds
     }
     
+    /// <summary>
+    /// 时间文本位置
+    /// </summary>
+    public enum TimeTextPosition
+    {
+        /// <summary>
+        /// 不显示时间文本
+        /// </summary>
+        None,
+        
+        /// <summary>
+        /// 进度条尾部模式（所有时间都显示在进度条后）
+        /// </summary>
+        EndOfTrack,
+        
+        /// <summary>
+        /// 经典模式（当前时间在前，总时间在后）
+        /// </summary>
+        Classic
+    }
+    
     #endregion
     
     /// <summary>
@@ -179,6 +200,7 @@ namespace MusicPlayerTrackBar
         
         private TimeDisplayType _timeDisplay = TimeDisplayType.OnHover; // 时间显示方式
         private TimeFormat _timeFormat = TimeFormat.Standard; // 时间格式
+        private TimeTextPosition _timeTextPosition = TimeTextPosition.Classic; // 时间文本位置
         
         private Font _timeFont = new Font("Arial", 8);       // 时间显示字体
         
@@ -546,6 +568,25 @@ namespace MusicPlayerTrackBar
                 if (_timeFormat != value)
                 {
                     _timeFormat = value;
+                    Invalidate();
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 获取或设置时间文本位置
+        /// </summary>
+        [Category("外观")]
+        [Description("获取或设置时间文本位置（None-不显示，EndOfTrack-进度条尾部模式，Classic-经典模式）")]
+        [DefaultValue(typeof(TimeTextPosition), "Classic")]
+        public TimeTextPosition TimeTextPosition
+        {
+            get => _timeTextPosition;
+            set
+            {
+                if (_timeTextPosition != value)
+                {
+                    _timeTextPosition = value;
                     Invalidate();
                 }
             }
@@ -1106,42 +1147,34 @@ namespace MusicPlayerTrackBar
         #region 辅助方法
         
         /// <summary>
-        /// 根据横坐标计算时间
-        /// </summary>
-        private long CalculateTimeFromPosition(int x)
-        {
-            // 有效轨道宽度
-            float trackWidth = Width - _thumbSize;
-            x = Math.Max(0, Math.Min(x, Width));
-            
-            // 计算比例
-            float proportion = x / (float)Width;
-            
-            // 计算时间
-            return (long)(proportion * _duration.TotalMilliseconds);
-        }
-        
-        /// <summary>
-        /// 根据时间计算横坐标位置
-        /// </summary>
-        private float CalculatePositionFromTime(long time)
-        {
-            if (_duration.TotalMilliseconds <= 0)
-                return 0;
-                
-            float proportion = (float)((double)time / _duration.TotalMilliseconds);
-            return proportion * Width;
-        }
-        
-        /// <summary>
         /// 获取轨道矩形区域
         /// </summary>
         private RectangleF GetTrackRectangle()
         {
+            // 计算时间文本的宽度，为其留出空间
+            SizeF currentTimeSize = new SizeF(0, 0);
+            SizeF totalTimeSize = new SizeF(0, 0);
+            
+            using (Graphics g = CreateGraphics())
+            {
+                if (g != null)
+                {
+                    // 使用一个稍长的时间文本作为测量标准，确保有足够空间
+                    currentTimeSize = g.MeasureString("00:00", _timeFont);
+                    totalTimeSize = g.MeasureString("00:00", _timeFont);
+                }
+            }
+            
+            // 进度条左右两侧需要留出的空间（时间文本宽度加上一些间距）
+            float leftMargin = (_timeTextPosition == TimeTextPosition.Classic) ? currentTimeSize.Width + 10 : 0;
+            float rightMargin = (_timeTextPosition == TimeTextPosition.Classic || _timeTextPosition == TimeTextPosition.EndOfTrack) ? 
+                                totalTimeSize.Width + 10 : 0;
+            
+            // 保持轨道在控件中央的垂直位置，但水平方向根据时间文本留出空间
             return new RectangleF(
-                0,
+                leftMargin,
                 (Height - _trackHeight) / 2,
-                Width,
+                Width - leftMargin - rightMargin,
                 _trackHeight);
         }
         
@@ -1151,7 +1184,8 @@ namespace MusicPlayerTrackBar
         private RectangleF GetBufferedRectangle()
         {
             RectangleF trackRect = GetTrackRectangle();
-            float bufferedWidth = (_duration.TotalMilliseconds <= 0) ? 0 : (float)((double)_bufferedTime.TotalMilliseconds / _duration.TotalMilliseconds * Width);
+            float bufferedWidth = (_duration.TotalMilliseconds <= 0) ? 0 : 
+                                 (float)((double)_bufferedTime.TotalMilliseconds / _duration.TotalMilliseconds * trackRect.Width);
             
             return new RectangleF(
                 trackRect.X,
@@ -1184,7 +1218,7 @@ namespace MusicPlayerTrackBar
             // 限制在有效范围内
             progressValue = Math.Max(0, Math.Min(1, progressValue));
             
-            float progressWidth = (float)(progressValue * Width);
+            float progressWidth = (float)(progressValue * trackRect.Width);
             
             return new RectangleF(
                 trackRect.X,
@@ -1198,6 +1232,8 @@ namespace MusicPlayerTrackBar
         /// </summary>
         private RectangleF GetThumbRectangle()
         {
+            RectangleF trackRect = GetTrackRectangle();
+            
             // 使用动画值或实际值
             double progressValue;
             
@@ -1215,7 +1251,7 @@ namespace MusicPlayerTrackBar
             // 限制在有效范围内
             progressValue = Math.Max(0, Math.Min(1, progressValue));
             
-            float thumbPosition = (float)(progressValue * (Width - _thumbSize));
+            float thumbPosition = trackRect.X + (float)(progressValue * trackRect.Width);
             
             // 如果有动画效果，应用缩放
             float actualThumbSize = _thumbSize;
@@ -1230,10 +1266,40 @@ namespace MusicPlayerTrackBar
             }
             
             return new RectangleF(
-                thumbPosition - offset,
-                (Height - actualThumbSize) / 2,
+                thumbPosition - (actualThumbSize / 2),
+                trackRect.Y + (trackRect.Height - actualThumbSize) / 2,
                 actualThumbSize,
                 actualThumbSize);
+        }
+        
+        /// <summary>
+        /// 根据横坐标计算时间
+        /// </summary>
+        private long CalculateTimeFromPosition(int x)
+        {
+            RectangleF trackRect = GetTrackRectangle();
+            
+            // 将鼠标位置限制在进度条范围内
+            float trackX = Math.Max(trackRect.X, Math.Min(x, trackRect.X + trackRect.Width));
+            
+            // 计算比例（相对于进度条，而不是控件宽度）
+            float proportion = (trackX - trackRect.X) / trackRect.Width;
+            
+            // 计算时间
+            return (long)(proportion * _duration.TotalMilliseconds);
+        }
+        
+        /// <summary>
+        /// 根据时间计算横坐标位置
+        /// </summary>
+        private float CalculatePositionFromTime(long time)
+        {
+            if (_duration.TotalMilliseconds <= 0)
+                return 0;
+                
+            RectangleF trackRect = GetTrackRectangle();
+            float proportion = (float)((double)time / _duration.TotalMilliseconds);
+            return trackRect.X + (proportion * trackRect.Width);
         }
         
         /// <summary>
@@ -1474,6 +1540,10 @@ namespace MusicPlayerTrackBar
                 
             if (_timeDisplay == TimeDisplayType.OnHover && !_isHovered && !_isDragging)
                 return;
+                
+            // 如果时间文本位置设置为None，则不显示
+            if (_timeTextPosition == TimeTextPosition.None)
+                return;
             
             // 使用当前时间或拖拽时间
             string currentTimeText;
@@ -1488,18 +1558,49 @@ namespace MusicPlayerTrackBar
             }
             
             string totalTimeText = FormatTime((long)_duration.TotalMilliseconds);
-            string timeText = $"{currentTimeText} / {totalTimeText}";
             
-            SizeF textSize = g.MeasureString(timeText, _timeFont);
+            // 获取文本大小
+            SizeF currentTimeSize = g.MeasureString(currentTimeText, _timeFont);
+            SizeF totalTimeSize = g.MeasureString(totalTimeText, _timeFont);
             
-            // 绘制在右下角
-            float textX = Width - textSize.Width - 5;
-            float textY = Height - textSize.Height - 2;
+            // 获取轨道位置，用于定位文本
+            RectangleF trackRect = GetTrackRectangle();
             
-            // 绘制文本
-            using (Brush textBrush = new SolidBrush(_trackColor))
+            // 文本垂直位置 - 与轨道中心对齐
+            float textY = trackRect.Y + (trackRect.Height - currentTimeSize.Height) / 2;
+            
+            // 定义文本位置变量
+            float textX = 0;
+            
+            // 根据不同的文本位置进行绘制
+            switch (_timeTextPosition)
             {
-                g.DrawString(timeText, _timeFont, textBrush, textX, textY);
+                case TimeTextPosition.EndOfTrack:
+                    // 进度条尾部模式：所有时间文本都显示在进度条右侧
+                    string combinedText = $"{currentTimeText} / {totalTimeText}";
+                    SizeF combinedSize = g.MeasureString(combinedText, _timeFont);
+                    
+                    textX = trackRect.Right + 5; // 在进度条右侧留出一些间距
+                    
+                    // 绘制组合文本在进度条右侧
+                    using (Brush textBrush = new SolidBrush(_trackColor))
+                    {
+                        g.DrawString(combinedText, _timeFont, textBrush, textX, textY);
+                    }
+                    break;
+                    
+                case TimeTextPosition.Classic:
+                    // 经典模式：当前时间在左侧，总时间在右侧
+                    using (Brush textBrush = new SolidBrush(_trackColor))
+                    {
+                        // 绘制当前时间在左侧
+                        g.DrawString(currentTimeText, _timeFont, textBrush, 0, textY);
+                        
+                        // 绘制总时间在右侧
+                        textX = trackRect.Right + 5; // 进度条右侧留出间距
+                        g.DrawString(totalTimeText, _timeFont, textBrush, textX, textY);
+                    }
+                    break;
             }
         }
         
