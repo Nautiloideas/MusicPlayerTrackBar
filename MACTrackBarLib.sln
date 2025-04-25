@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35931.197
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApp2", "TestApp2\TestApp2.csproj", "{D2C3DABD-0A79-4447-8E50-19186F17786C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicPlayerTrackBar", "MusicPlayerTrackBar\MusicPlayerTrackBar.csproj", "{A78B9E0E-5F0A-4EDF-B4E5-09159FD49EBC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D2C3DABD-0A79-4447-8E50-19186F17786C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2C3DABD-0A79-4447-8E50-19186F17786C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2C3DABD-0A79-4447-8E50-19186F17786C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2C3DABD-0A79-4447-8E50-19186F17786C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A78B9E0E-5F0A-4EDF-B4E5-09159FD49EBC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A78B9E0E-5F0A-4EDF-B4E5-09159FD49EBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A78B9E0E-5F0A-4EDF-B4E5-09159FD49EBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A78B9E0E-5F0A-4EDF-B4E5-09159FD49EBC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8C45DFA4-E75B-41B4-A5C9-0BCBC4B5ABB3}
+	EndGlobalSection
+EndGlobal

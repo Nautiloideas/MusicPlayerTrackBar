@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net6.0-windows</TargetFramework>
+        <Nullable>enable</Nullable>
+        <UseWindowsForms>true</UseWindowsForms>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+        <Description>音乐播放器专用轨道条控件，支持多种视觉样式和功能</Description>
+        <Version>1.0.0</Version>
+        <Authors>UserName</Authors>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    </PropertyGroup>
+</Project>
