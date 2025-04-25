@@ -7,205 +7,204 @@ namespace TestApp2
 {
     public partial class Form1 : Form
     {
-        private System.Windows.Forms.Timer playTimer;
-        private System.Windows.Forms.Timer bufferTimer;
-        private Random random = new Random();
-        private bool isPlaying = false;
-        
+        private bool _isPlaying = false;
+        private System.Windows.Forms.Timer _timer;
+
         public Form1()
         {
             InitializeComponent();
-            InitializeApp();
-        }
-        
-        private void InitializeApp()
-        {
-            // 初始化定时器
-            playTimer = new System.Windows.Forms.Timer
-            {
-                Interval = 100, // 100毫秒更新一次
-                Enabled = false
-            };
-            playTimer.Tick += PlayTimer_Tick;
-            
-            bufferTimer = new System.Windows.Forms.Timer
-            {
-                Interval = 500, // 500毫秒更新一次
-                Enabled = false
-            };
-            bufferTimer.Tick += BufferTimer_Tick;
-            
-            // 设置控件初始属性
-            musicPlayerTrackBar1.Duration = 180000; // 3分钟
-            musicPlayerTrackBar1.ShowBuffered = true;
-            musicPlayerTrackBar1.ShowMarkers = true;
-            musicPlayerTrackBar1.TimeDisplay = TimeDisplayType.Always;
-            
-            // 添加事件处理
+
+            // 初始化UI和事件订阅
+            _timer = new System.Windows.Forms.Timer();
+            _timer.Interval = 100;
+            _timer.Tick += Timer_Tick;
+
+            // 事件订阅
             musicPlayerTrackBar1.TimeChanged += MusicPlayerTrackBar1_TimeChanged;
-            musicPlayerTrackBar1.DragStarted += MusicPlayerTrackBar1_DragStarted;
-            musicPlayerTrackBar1.DragCompleted += MusicPlayerTrackBar1_DragCompleted;
+            musicPlayerTrackBar1.PreviewPositionChanged += MusicPlayerTrackBar1_PreviewPositionChanged;
+
+            // 初始选择下拉框
+            cboStyle.SelectedIndex = musicPlayerTrackBar1.TrackBarStyle == TrackBarStyle.Flat ? 0 : 1;
+            cboThumbStyle.SelectedIndex = (int)musicPlayerTrackBar1.ThumbStyle;
+            cboTimeTextPosition.SelectedIndex = (int)musicPlayerTrackBar1.TimeTextPosition;
+            cboTimeFormat.SelectedIndex = (int)musicPlayerTrackBar1.TimeFormat;
             
-            // 设置常规TrackBar
-            trackBar1.Maximum = 100;
-            trackBar1.ValueChanged += TrackBar1_ValueChanged;
+            // 更新持续时间控件的值
+            numDuration.Value = musicPlayerTrackBar1.Duration / 1000; // 转换为秒
             
-            // 设置下拉框初始选项
-            cboStyle.SelectedIndex = 0;
-            cboThumbStyle.SelectedIndex = 0;
-            
-            // 更新初始时间信息
-            UpdateTimeInfo(0);
+            // 更新UI状态
+            UpdateTimeDisplay();
+            lblStatus.Text = "就绪";
+            chkCompatibilityMode.Checked = musicPlayerTrackBar1.CompatibilityMode;
         }
-        
-        private void TrackBar1_ValueChanged(object sender, EventArgs e)
+
+        private void UpdateTimeDisplay()
         {
-            if (!isPlaying && chkCompatibilityMode.Checked)
+            // 格式化并显示时间信息
+            string currentTime = FormatTime(musicPlayerTrackBar1.CurrentTime);
+            string totalTime = FormatTime(musicPlayerTrackBar1.Duration);
+            lblTimeInfo.Text = $"{currentTime} / {totalTime}";
+        }
+
+        private string FormatTime(long milliseconds)
+        {
+            TimeSpan time = TimeSpan.FromMilliseconds(milliseconds);
+            int totalMinutes = (int)time.TotalMinutes;
+            
+            if (musicPlayerTrackBar1.TimeFormat == TimeFormat.Standard)
             {
-                musicPlayerTrackBar1.Value = trackBar1.Value;
+                // 对于超过59分钟的时间，显示总分钟数而不是重置
+                if (time.Hours > 0 || totalMinutes >= 60)
+                {
+                    return $"{totalMinutes}:{time.Seconds:00}";
+                }
+                return $"{time.Minutes:00}:{time.Seconds:00}";
+            }
+            else if (musicPlayerTrackBar1.TimeFormat == TimeFormat.Complete)
+            {
+                // 如果小时数大于0，显示小时
+                if (time.Hours > 0) 
+                    return $"{(int)time.TotalHours:00}:{time.Minutes:00}:{time.Seconds:00}";
+                    
+                // 如果分钟数大于等于60，显示总分钟数
+                if (totalMinutes >= 60)
+                {
+                    return $"{totalMinutes}:{time.Seconds:00}";
+                }
+                return $"{time.Minutes:00}:{time.Seconds:00}";
+            }
+            else // TimeFormat.WithMilliseconds
+            {
+                if (time.Hours > 0 || totalMinutes >= 60)
+                {
+                    return $"{totalMinutes}:{time.Seconds:00}.{time.Milliseconds:000}";
+                }
+                return $"{time.Minutes:00}:{time.Seconds:00}.{time.Milliseconds:000}";
             }
         }
-        
+
+        private void Timer_Tick(object sender, EventArgs e)
+        {
+            // 更新当前时间和UI
+            if (_isPlaying)
+            {
+                long newTime = musicPlayerTrackBar1.CurrentTime + _timer.Interval;
+                if (newTime > musicPlayerTrackBar1.Duration)
+                {
+                    newTime = 0;
+                    _isPlaying = false;
+                    _timer.Stop();
+                    btnPlay.Text = "播放";
+                }
+                musicPlayerTrackBar1.CurrentTime = newTime;
+                UpdateTimeDisplay();
+            }
+        }
+
+        private void MusicPlayerTrackBar1_TimeChanged(object sender, TimeChangedEventArgs e)
+        {
+            UpdateTimeDisplay();
+            lblStatus.Text = $"时间改变: {FormatTime(e.CurrentTime)}";
+        }
+
+        private void MusicPlayerTrackBar1_PreviewPositionChanged(object sender, TimeChangedEventArgs e)
+        {
+            lblStatus.Text = $"预览位置: {FormatTime(e.CurrentTime)}";
+        }
+
         private void btnPlay_Click(object sender, EventArgs e)
         {
-            isPlaying = !isPlaying;
-            
-            if (isPlaying)
+            _isPlaying = !_isPlaying;
+            if (_isPlaying)
             {
-                playTimer.Start();
-                bufferTimer.Start();
-                lblStatus.Text = "播放中...";
+                _timer.Start();
+                btnPlay.Text = "暂停";
             }
             else
             {
-                playTimer.Stop();
-                bufferTimer.Stop();
-                lblStatus.Text = "已暂停";
+                _timer.Stop();
+                btnPlay.Text = "播放";
             }
         }
-        
+
         private void btnReset_Click(object sender, EventArgs e)
         {
-            isPlaying = false;
-            playTimer.Stop();
-            bufferTimer.Stop();
-            
+            _isPlaying = false;
+            _timer.Stop();
+            btnPlay.Text = "播放";
             musicPlayerTrackBar1.CurrentTime = 0;
-            musicPlayerTrackBar1.BufferedTime = 0;
-            trackBar1.Value = 0;
-            
-            lblStatus.Text = "已重置";
-            UpdateTimeInfo(0);
+            UpdateTimeDisplay();
         }
-        
-        private void btnAddMarker_Click(object sender, EventArgs e)
-        {
-            AddRandomMarker();
-        }
-        
-        private void btnClearMarkers_Click(object sender, EventArgs e)
-        {
-            musicPlayerTrackBar1.ClearChapterMarkers();
-        }
-        
+
         private void cboStyle_SelectedIndexChanged(object sender, EventArgs e)
         {
-            musicPlayerTrackBar1.TrackBarStyle = (TrackBarStyle)cboStyle.SelectedIndex;
+            musicPlayerTrackBar1.TrackBarStyle = cboStyle.SelectedIndex == 0 ? 
+                TrackBarStyle.Flat : TrackBarStyle.Round;
         }
-        
+
         private void cboThumbStyle_SelectedIndexChanged(object sender, EventArgs e)
         {
             musicPlayerTrackBar1.ThumbStyle = (ThumbStyle)cboThumbStyle.SelectedIndex;
         }
-        
+
+        private void cboTimeTextPosition_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            musicPlayerTrackBar1.TimeTextPosition = (TimeTextPosition)cboTimeTextPosition.SelectedIndex;
+        }
+
+        private void cboTimeFormat_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            musicPlayerTrackBar1.TimeFormat = (TimeFormat)cboTimeFormat.SelectedIndex;
+            UpdateTimeDisplay();
+        }
+
         private void chkCompatibilityMode_CheckedChanged(object sender, EventArgs e)
         {
             musicPlayerTrackBar1.CompatibilityMode = chkCompatibilityMode.Checked;
         }
-        
-        private void PlayTimer_Tick(object sender, EventArgs e)
+
+        private void btnAddMarker_Click(object sender, EventArgs e)
         {
-            // 模拟播放进度
-            long currentTime = musicPlayerTrackBar1.CurrentTime;
-            currentTime += 500; // 每次增加500毫秒
+            TimeSpan markerTime = TimeSpan.FromMilliseconds(musicPlayerTrackBar1.CurrentTime);
+            int totalMinutes = (int)markerTime.TotalMinutes;
             
-            if (currentTime > musicPlayerTrackBar1.Duration)
+            string markerTimeText;
+            if (totalMinutes >= 60)
             {
-                // 播放结束
-                currentTime = 0;
-                isPlaying = false;
-                playTimer.Stop();
-                bufferTimer.Stop();
-                lblStatus.Text = "播放完成";
+                // 如果总分钟数大于等于60，使用总分钟格式
+                markerTimeText = $"{totalMinutes}\\:{markerTime.Seconds:00}";
+            }
+            else
+            {
+                // 否则使用标准格式
+                markerTimeText = markerTime.ToString("mm\\:ss");
             }
             
-            musicPlayerTrackBar1.CurrentTime = currentTime;
+            musicPlayerTrackBar1.AddChapterMarker(musicPlayerTrackBar1.CurrentTime, $"标记 {markerTimeText}", Color.OrangeRed);
+            lblStatus.Text = $"添加标记点: {FormatTime(musicPlayerTrackBar1.CurrentTime)}";
+        }
+
+        private void btnClearMarkers_Click(object sender, EventArgs e)
+        {
+            musicPlayerTrackBar1.ClearChapterMarkers();
+            lblStatus.Text = "已清除所有标记点";
+        }
+        
+        private void numDuration_ValueChanged(object sender, EventArgs e)
+        {
+            // 将秒转换为毫秒并设置总时长
+            long durationMs = (long)(numDuration.Value * 1000);
+            musicPlayerTrackBar1.Duration = durationMs;
             
-            // 同步标准TrackBar
-            if (chkCompatibilityMode.Checked)
+            // 确保当前时间不超过总时长
+            if (musicPlayerTrackBar1.CurrentTime > durationMs)
             {
-                trackBar1.Value = musicPlayerTrackBar1.Value;
+                musicPlayerTrackBar1.CurrentTime = 0;
             }
             
-            UpdateTimeInfo(currentTime);
-        }
-        
-        private void BufferTimer_Tick(object sender, EventArgs e)
-        {
-            // 模拟缓冲进度
-            long bufferedTime = musicPlayerTrackBar1.BufferedTime;
-            long targetBuffer = musicPlayerTrackBar1.CurrentTime + 20000; // 缓冲比当前位置快20秒
-            
-            if (bufferedTime < targetBuffer && bufferedTime < musicPlayerTrackBar1.Duration)
-            {
-                bufferedTime += 5000; // 每次增加5秒缓冲
-                musicPlayerTrackBar1.BufferedTime = Math.Min(bufferedTime, musicPlayerTrackBar1.Duration);
-            }
-        }
-        
-        private void MusicPlayerTrackBar1_TimeChanged(object sender, TimeChangedEventArgs e)
-        {
-            UpdateTimeInfo(e.CurrentTime);
-        }
-        
-        private void MusicPlayerTrackBar1_DragStarted(object sender, MusicPlayerTrackBar.DragEventArgs e)
-        {
-            lblStatus.Text = "拖动开始: " + musicPlayerTrackBar1.FormatTime(e.Time);
-        }
-        
-        private void MusicPlayerTrackBar1_DragCompleted(object sender, MusicPlayerTrackBar.DragEventArgs e)
-        {
-            lblStatus.Text = "拖动结束: " + musicPlayerTrackBar1.FormatTime(e.Time);
-            
-            // 同步标准TrackBar
-            if (chkCompatibilityMode.Checked)
-            {
-                trackBar1.Value = musicPlayerTrackBar1.Value;
-            }
-        }
-        
-        private void AddRandomMarker()
-        {
-            // 添加随机位置的标记
-            long time = (long)(random.NextDouble() * musicPlayerTrackBar1.Duration);
-            string title = "标记 " + (DateTime.Now.Ticks % 1000);
-            
-            // 随机颜色
-            Color color = Color.FromArgb(
-                random.Next(100, 255),
-                random.Next(100, 255),
-                random.Next(100, 255)
-            );
-            
-            musicPlayerTrackBar1.AddChapterMarker(time, title, color);
-            lblStatus.Text = "添加标记: " + title + " 在 " + musicPlayerTrackBar1.FormatTime(time);
-        }
-        
-        private void UpdateTimeInfo(long time)
-        {
-            string currentTime = musicPlayerTrackBar1.FormatTime(time);
-            string totalTime = musicPlayerTrackBar1.FormatTime(musicPlayerTrackBar1.Duration);
-            lblTimeInfo.Text = $"{currentTime} / {totalTime}";
+            // 更新显示
+            UpdateTimeDisplay();
+            lblStatus.Text = $"总时长已更新: {FormatTime(durationMs)}";
         }
     }
 }

@@ -877,18 +877,35 @@ namespace MusicPlayerTrackBar
         public string FormatTime(long milliseconds)
         {
             TimeSpan time = TimeSpan.FromMilliseconds(milliseconds);
+            int totalMinutes = (int)time.TotalMinutes;
             
             switch (_timeFormat)
             {
                 case TimeFormat.Standard:
+                    if (time.Hours > 0 || totalMinutes >= 60)
+                    {
+                        // 不区分小时，直接显示总分钟数
+                        return $"{totalMinutes}:{time.Seconds:00}";
+                    }
                     return time.ToString(@"mm\:ss");
                     
                 case TimeFormat.Complete:
-                    return time.Hours > 0 
-                        ? time.ToString(@"hh\:mm\:ss") 
-                        : time.ToString(@"mm\:ss");
+                    // 如果小时数大于0，显示小时
+                    if (time.Hours > 0) 
+                        return time.ToString(@"hh\:mm\:ss");
+                    
+                    // 如果分钟数大于等于60，显示总分钟数
+                    if (totalMinutes >= 60)
+                    {
+                        return $"{totalMinutes}:{time.Seconds:00}";
+                    }
+                    return time.ToString(@"mm\:ss");
                     
                 case TimeFormat.WithMilliseconds:
+                    if (time.Hours > 0 || totalMinutes >= 60)
+                    {
+                        return $"{totalMinutes}:{time.Seconds:00}.{time.Milliseconds:000}";
+                    }
                     return time.ToString(@"mm\:ss\.fff");
                     
                 default:
@@ -907,8 +924,16 @@ namespace MusicPlayerTrackBar
         {
             if (e.Button == MouseButtons.Left)
             {
-                // 计算滑块矩形
+                // 获取轨道和滑块矩形
+                RectangleF trackRect = GetTrackRectangle();
                 _thumbRect = GetThumbRectangle();
+                
+                // 检查鼠标点击是否在轨道区域内
+                if (!trackRect.Contains(e.Location) && !_thumbRect.Contains(e.Location))
+                {
+                    // 如果点击在轨道区域外且不在滑块上，则不处理
+                    return;
+                }
                 
                 // 检查是否点击在滑块上
                 if (_thumbRect.Contains(e.Location))
@@ -990,16 +1015,19 @@ namespace MusicPlayerTrackBar
             // 更新鼠标位置
             _mousePosition = e.Location;
             
+            // 获取轨道区域
+            RectangleF trackRect = GetTrackRectangle();
+            
             if (_isDragging)
             {
                 if (_isDraggingThumb)
                 {
                     // 拖拽滑块模式
-                    // 限制鼠标范围，确保滑块在轨道内
-                    int x = Math.Max(0, Math.Min(e.X, Width));
+                    // 限制鼠标X坐标在轨道范围内
+                    float trackX = Math.Max(trackRect.X, Math.Min(e.X, trackRect.X + trackRect.Width));
                     
                     // 计算一个临时时间值，但不立即应用
-                    _dragCurrentTime = CalculateTimeFromPosition(x);
+                    _dragCurrentTime = CalculateTimeFromPosition((int)trackX);
                     
                     // 立即重绘，提高反应速度
                     Invalidate();
@@ -1160,15 +1188,35 @@ namespace MusicPlayerTrackBar
                 if (g != null)
                 {
                     // 使用一个稍长的时间文本作为测量标准，确保有足够空间
-                    currentTimeSize = g.MeasureString("00:00", _timeFont);
-                    totalTimeSize = g.MeasureString("00:00", _timeFont);
+                    // 提供的时间格式用于测量
+                    currentTimeSize = g.MeasureString("100:00", _timeFont);
+                    totalTimeSize = g.MeasureString("100:00", _timeFont);
                 }
             }
             
             // 进度条左右两侧需要留出的空间（时间文本宽度加上一些间距）
             float leftMargin = (_timeTextPosition == TimeTextPosition.Classic) ? currentTimeSize.Width + 10 : 0;
-            float rightMargin = (_timeTextPosition == TimeTextPosition.Classic || _timeTextPosition == TimeTextPosition.EndOfTrack) ? 
-                                totalTimeSize.Width + 10 : 0;
+            
+            float rightMargin = 0;
+            if (_timeTextPosition == TimeTextPosition.Classic)
+            {
+                rightMargin = totalTimeSize.Width + 10;
+            }
+            else if (_timeTextPosition == TimeTextPosition.EndOfTrack)
+            {
+                // 在尾部模式下，只预留必要的空间
+                // 当前时间 + 分隔符 + 总时间
+                string separator = " / ";
+                SizeF separatorSize = new SizeF(10, 0); // 估计分隔符宽度
+                using (Graphics g = CreateGraphics())
+                {
+                    if (g != null)
+                    {
+                        separatorSize = g.MeasureString(separator, _timeFont);
+                    }
+                }
+                rightMargin = currentTimeSize.Width + separatorSize.Width + totalTimeSize.Width + 10;
+            }
             
             // 保持轨道在控件中央的垂直位置，但水平方向根据时间文本留出空间
             return new RectangleF(
@@ -1576,16 +1624,22 @@ namespace MusicPlayerTrackBar
             switch (_timeTextPosition)
             {
                 case TimeTextPosition.EndOfTrack:
-                    // 进度条尾部模式：所有时间文本都显示在进度条右侧
-                    string combinedText = $"{currentTimeText} / {totalTimeText}";
-                    SizeF combinedSize = g.MeasureString(combinedText, _timeFont);
-                    
-                    textX = trackRect.Right + 5; // 在进度条右侧留出一些间距
-                    
-                    // 绘制组合文本在进度条右侧
+                    // 进度条尾部模式：当前时间和总时间分别显示在进度条右侧
                     using (Brush textBrush = new SolidBrush(_trackColor))
                     {
-                        g.DrawString(combinedText, _timeFont, textBrush, textX, textY);
+                        // 绘制当前时间在右侧
+                        textX = trackRect.Right + 5; // 进度条右侧留出间距
+                        g.DrawString(currentTimeText, _timeFont, textBrush, textX, textY);
+                        
+                        // 绘制分隔符
+                        string separator = " / ";
+                        SizeF separatorSize = g.MeasureString(separator, _timeFont);
+                        float separatorX = textX + currentTimeSize.Width;
+                        g.DrawString(separator, _timeFont, textBrush, separatorX, textY);
+                        
+                        // 绘制总时间在当前时间后面
+                        float totalTimeX = separatorX + separatorSize.Width;
+                        g.DrawString(totalTimeText, _timeFont, textBrush, totalTimeX, textY);
                     }
                     break;
                     
@@ -1611,6 +1665,9 @@ namespace MusicPlayerTrackBar
         {
             try
             {
+                // 获取真实进度条区域
+                RectangleF trackRect = GetTrackRectangle();
+                
                 // 计算滑块位置
                 _thumbRect = GetThumbRectangle();
                 
@@ -1624,12 +1681,18 @@ namespace MusicPlayerTrackBar
                     return;
                 }
                 
-                // 计算鼠标位置对应的时间
-                float ratio = (float)mouseX / (float)ClientRectangle.Width;
-                TimeSpan hoverTime = TimeSpan.FromSeconds(_duration.TotalSeconds * ratio);
+                // 计算鼠标位置对应的时间（相对于轨道区域）
+                // 将鼠标位置限制在进度条范围内
+                float trackX = Math.Max(trackRect.X, Math.Min(mouseX, trackRect.X + trackRect.Width));
+                
+                // 计算比例（相对于进度条，而不是控件宽度）
+                float proportion = (trackX - trackRect.X) / trackRect.Width;
+                
+                // 计算时间
+                long hoverTimeMs = (long)(proportion * _duration.TotalMilliseconds);
                 
                 // 准备时间文本
-                string timeText = FormatTime((long)hoverTime.TotalMilliseconds);
+                string timeText = FormatTime(hoverTimeMs);
                 SizeF textSize = g.MeasureString(timeText, _timeFont);
                 
                 // 计算气泡大小和位置
